@@ -1,5 +1,5 @@
 services:
-pgsql:
+    pgsql:
         image: 'postgres:18-alpine'
         ports:
             - '${FORWARD_DB_PORT:-5430}:5432'
