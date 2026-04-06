@@ -19,6 +19,8 @@ fi
 
 # Build frontend assets so the Vite manifest exists
 if [ -f "vite.config.ts" ] || [ -f "vite.config.js" ]; then
+    # Remove stale Vite hot file so Laravel uses the built manifest
+    rm -f public/hot
     echo "[dev-entrypoint] Building frontend assets..."
     gosu sail npm run build
 fi
