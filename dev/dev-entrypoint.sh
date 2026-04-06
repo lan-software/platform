@@ -21,8 +21,17 @@ fi
 if [ -f "vite.config.ts" ] || [ -f "vite.config.js" ]; then
     # Remove stale Vite hot file so Laravel uses the built manifest
     rm -f public/hot
+
+    # Generate Wayfinder routes/actions before building, so the import paths
+    # exist. The Vite plugin is skipped (WAYFINDER_SKIP) to avoid a duplicate
+    # artisan call that can race or fail.
+    if [ -f "artisan" ] && php artisan list --raw 2>/dev/null | grep -q wayfinder; then
+        echo "[dev-entrypoint] Generating Wayfinder routes..."
+        gosu sail php artisan wayfinder:generate --with-form 2>/dev/null || true
+    fi
+
     echo "[dev-entrypoint] Building frontend assets..."
-    gosu sail npm run build
+    WAYFINDER_SKIP=1 gosu sail npm run build
 fi
 
 # Hand off to the normal Sail entrypoint
