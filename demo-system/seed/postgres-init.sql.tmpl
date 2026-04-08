@@ -1,0 +1,21 @@
+-- Template — envsubst'd into postgres-init.sql by scripts/up.sh before the
+-- postgres volume is first created. Runs only on first volume initialization.
+-- All per-app users share the same rotating POSTGRES_PASSWORD for simplicity.
+
+CREATE USER lancore     WITH PASSWORD '${POSTGRES_PASSWORD}';
+CREATE USER lanbrackets WITH PASSWORD '${POSTGRES_PASSWORD}';
+CREATE USER lanentrance WITH PASSWORD '${POSTGRES_PASSWORD}';
+CREATE USER lanhelp     WITH PASSWORD '${POSTGRES_PASSWORD}';
+CREATE USER lanshout    WITH PASSWORD '${POSTGRES_PASSWORD}';
+
+CREATE DATABASE lancore     OWNER lancore;
+CREATE DATABASE lanbrackets OWNER lanbrackets;
+CREATE DATABASE lanentrance OWNER lanentrance;
+CREATE DATABASE lanhelp     OWNER lanhelp;
+CREATE DATABASE lanshout    OWNER lanshout;
+
+GRANT ALL PRIVILEGES ON DATABASE lancore     TO lancore;
+GRANT ALL PRIVILEGES ON DATABASE lanbrackets TO lanbrackets;
+GRANT ALL PRIVILEGES ON DATABASE lanentrance TO lanentrance;
+GRANT ALL PRIVILEGES ON DATABASE lanhelp     TO lanhelp;
+GRANT ALL PRIVILEGES ON DATABASE lanshout    TO lanshout;

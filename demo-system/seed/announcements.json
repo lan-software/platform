@@ -1,0 +1,4 @@
+{
+  "_comment": "Optional pre-seeded announcements. SeedDemoCommand reads this file if present. Safe to leave empty for v1.",
+  "announcements": []
+}

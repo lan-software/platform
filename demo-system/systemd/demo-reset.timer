@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly Lan-Software demo reset
+Documentation=https://github.com/lan-software/lan-software
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=60
+Unit=demo-reset.service
+
+[Install]
+WantedBy=timers.target

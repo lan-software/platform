@@ -1,0 +1,300 @@
+## Lan-Software public demo stack
+##
+## All Lan* services use the LanBase runtime contract (see LanBase/README.md).
+## Only Caddy is exposed to the host; all apps are internal-only.
+##
+## Memory limits under `deploy.resources.limits` are only enforced when running
+## `docker compose --compatibility up -d` (documented in README).
+
+x-lan-common: &lan-common
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  networks:
+    - demo
+
+x-lan-env: &lan-env
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_DEMO: "true"
+  APP_DEMO_BANNER_MESSAGE: "This is a public demo — resets hourly. Please don't enter real data."
+  APP_DEMO_MAILPIT_URL: "https://${DEMO_MAILPIT_HOST}"
+  LOG_CHANNEL: stderr
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  MAIL_MAILER: smtp
+  MAIL_HOST: mailpit
+  MAIL_PORT: "1025"
+  MAIL_SCHEME: ""
+  MAIL_USERNAME: ""
+  MAIL_PASSWORD: ""
+  MAIL_FROM_ADDRESS: "demo@${DEMO_DOMAIN}"
+  MAIL_FROM_NAME: "Lan-Software Demo"
+  LANCORE_BASE_URL: "https://${DEMO_LANCORE_HOST}"
+  LANCORE_ANNOUNCEMENTS_FEED_URL: "https://${DEMO_LANCORE_HOST}/api/announcements/feed"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      CADDY_LE_EMAIL: "${CADDY_LE_EMAIL}"
+      DEMO_LANCORE_HOST: "${DEMO_LANCORE_HOST}"
+      DEMO_LANBRACKETS_HOST: "${DEMO_LANBRACKETS_HOST}"
+      DEMO_LANENTRANCE_HOST: "${DEMO_LANENTRANCE_HOST}"
+      DEMO_LANHELP_HOST: "${DEMO_LANHELP_HOST}"
+      DEMO_LANSHOUT_HOST: "${DEMO_LANSHOUT_HOST}"
+      DEMO_MAILPIT_HOST: "${DEMO_MAILPIT_HOST}"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - demo
+    depends_on:
+      - lancore
+      - lanbrackets
+      - lanentrance
+      - lanhelp
+      - lanshout
+      - mailpit
+
+  lancore:
+    <<: *lan-common
+    image: ghcr.io/lan-software/lancore:main
+    environment:
+      <<: *lan-env
+      APP_URL: "https://${DEMO_LANCORE_HOST}"
+      APP_KEY: "${LANCORE_APP_KEY}"
+      FLAVOR: octane
+      ROLE: all
+      SKIP_MIGRATE: "0"
+      SKIP_CACHE: "0"
+      OCTANE_WORKERS: auto
+      OCTANE_MAX_REQUESTS: "500"
+      DB_DATABASE: lancore
+      DB_USERNAME: lancore
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  lanbrackets:
+    <<: *lan-common
+    image: ghcr.io/lan-software/lanbrackets:main
+    environment:
+      <<: *lan-env
+      APP_URL: "https://${DEMO_LANBRACKETS_HOST}"
+      APP_KEY: "${LANBRACKETS_APP_KEY}"
+      FLAVOR: octane
+      ROLE: all
+      SKIP_MIGRATE: "1"
+      SKIP_CACHE: "0"
+      OCTANE_WORKERS: auto
+      OCTANE_MAX_REQUESTS: "500"
+      DB_DATABASE: lanbrackets
+      DB_USERNAME: lanbrackets
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+    depends_on:
+      lancore:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  lanentrance:
+    <<: *lan-common
+    image: ghcr.io/lan-software/lanentrance:main
+    environment:
+      <<: *lan-env
+      APP_URL: "https://${DEMO_LANENTRANCE_HOST}"
+      APP_KEY: "${LANENTRANCE_APP_KEY}"
+      FLAVOR: server
+      ROLE: all
+      SKIP_MIGRATE: "1"
+      SKIP_CACHE: "0"
+      DB_DATABASE: lanentrance
+      DB_USERNAME: lanentrance
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+    depends_on:
+      lancore:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  lanhelp:
+    <<: *lan-common
+    image: ghcr.io/lan-software/lanhelp:main
+    environment:
+      <<: *lan-env
+      APP_URL: "https://${DEMO_LANHELP_HOST}"
+      APP_KEY: "${LANHELP_APP_KEY}"
+      FLAVOR: server
+      ROLE: all
+      SKIP_MIGRATE: "1"
+      SKIP_CACHE: "0"
+      DB_DATABASE: lanhelp
+      DB_USERNAME: lanhelp
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+    depends_on:
+      lancore:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  lanshout:
+    <<: *lan-common
+    image: ghcr.io/lan-software/lanshout:main
+    environment:
+      <<: *lan-env
+      APP_URL: "https://${DEMO_LANSHOUT_HOST}"
+      APP_KEY: "${LANSHOUT_APP_KEY}"
+      FLAVOR: server
+      ROLE: all
+      SKIP_MIGRATE: "1"
+      SKIP_CACHE: "0"
+      DB_DATABASE: lanshout
+      DB_USERNAME: lanshout
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+    depends_on:
+      lancore:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./seed/postgres-init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+    networks:
+      - demo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: ["redis-server", "--appendonly", "no", "--save", "", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    networks:
+      - demo
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      MP_MAX_MESSAGES: "5000"
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    networks:
+      - demo
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8025/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+networks:
+  demo:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:

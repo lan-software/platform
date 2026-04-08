@@ -1,0 +1,18 @@
+[Unit]
+Description=Lan-Software demo reset
+Documentation=https://github.com/lan-software/lan-software
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Install path: clone the monorepo to /opt/lan-software and symlink
+# /opt/demo-system -> /opt/lan-software/platform/demo-system, OR adjust the
+# WorkingDirectory/ExecStart paths below to the real install location.
+WorkingDirectory=/opt/demo-system
+ExecStart=/opt/demo-system/scripts/reset.sh
+User=demo
+Group=demo
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=600

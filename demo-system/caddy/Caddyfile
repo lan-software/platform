@@ -1,0 +1,90 @@
+# Lan-Software public demo — Caddy v2
+#
+# Rate limiting for v1 is handled at Cloudflare in front of this host.
+# If you want in-Caddy rate limiting, rebuild caddy with the caddy-ratelimit
+# plugin (xcaddy) and uncomment the rate_limit blocks below.
+
+{
+	email {$CADDY_LE_EMAIL}
+	servers {
+		max_header_size 16KB
+	}
+}
+
+(common) {
+	encode zstd br gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	request_body {
+		max_size 2MB
+	}
+
+	handle_errors {
+		@upstream_down expression `{err.status_code} in [502, 503, 504]`
+		handle @upstream_down {
+			respond <<HOLDING
+				<!doctype html>
+				<html lang="en"><head><meta charset="utf-8">
+				<title>Demo resetting</title>
+				<meta name="viewport" content="width=device-width,initial-scale=1">
+				<style>
+				  body{font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9;
+				       display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+				  .card{max-width:480px;padding:2rem;background:#1e293b;border-radius:12px;text-align:center}
+				  h1{margin:0 0 .5rem;font-size:1.5rem}
+				  p{margin:.5rem 0;color:#cbd5e1;line-height:1.5}
+				</style></head>
+				<body><div class="card">
+				  <h1>Demo is resetting</h1>
+				  <p>The Lan-Software public demo resets on the hour. This usually takes about 30 seconds.</p>
+				  <p>Please reload in a moment.</p>
+				</div></body></html>
+				HOLDING 503
+		}
+		handle {
+			respond "{err.status_code} {err.status_text}" {err.status_code}
+		}
+	}
+
+	# rate_limit {
+	#   zone login { key {remote_host} events 10 window 1m }
+	#   zone api   { key {remote_host} events 60 window 1m }
+	# }
+}
+
+{$DEMO_LANCORE_HOST} {
+	import common
+	reverse_proxy lancore:80
+}
+
+{$DEMO_LANBRACKETS_HOST} {
+	import common
+	reverse_proxy lanbrackets:80
+}
+
+{$DEMO_LANENTRANCE_HOST} {
+	import common
+	reverse_proxy lanentrance:80
+}
+
+{$DEMO_LANHELP_HOST} {
+	import common
+	reverse_proxy lanhelp:80
+}
+
+{$DEMO_LANSHOUT_HOST} {
+	import common
+	reverse_proxy lanshout:80
+}
+
+{$DEMO_MAILPIT_HOST} {
+	import common
+	reverse_proxy mailpit:8025
+}
