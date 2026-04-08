@@ -1,0 +1,10 @@
+{
+  "name": "local",
+  "baseUrl": "http://host.docker.internal",
+  "integrationBaseUrl": "http://host.docker.internal",
+  "maxVus": 2000,
+  "defaultThinkTime": 1.0,
+  "insecureSkipTLSVerify": true,
+  "userEmailDomain": "loadtest.local",
+  "userPassword": "loadtest-password-123!"
+}

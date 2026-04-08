@@ -1,0 +1,10 @@
+{
+  "name": "staging",
+  "baseUrl": "",
+  "integrationBaseUrl": "",
+  "maxVus": 500,
+  "defaultThinkTime": 1.5,
+  "insecureSkipTLSVerify": false,
+  "userEmailDomain": "loadtest.local",
+  "userPassword": ""
+}

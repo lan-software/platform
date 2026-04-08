@@ -1,0 +1,154 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "title": "k6 Load Test + LanCore",
+  "uid": "k6-loadtest",
+  "tags": ["k6", "loadtest", "lancore"],
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "1s",
+  "time": {"from": "now-15m", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    { "type": "row", "title": "k6 — Load Generator", "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}, "collapsed": false },
+
+    {
+      "type": "timeseries", "title": "Virtual Users",
+      "gridPos": {"h": 7, "w": 6, "x": 0, "y": 1},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "k6_vus", "legendFormat": "active VUs", "refId": "A"},
+        {"expr": "k6_vus_max", "legendFormat": "max VUs", "refId": "B"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Request rate (req/s)",
+      "gridPos": {"h": 7, "w": 6, "x": 6, "y": 1},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(k6_http_reqs_total[10s]))", "legendFormat": "all", "refId": "A"},
+        {"expr": "sum by (name) (rate(k6_http_reqs_total[10s]))", "legendFormat": "{{name}}", "refId": "B"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Error rate (%)",
+      "gridPos": {"h": 7, "w": 6, "x": 12, "y": 1},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}},
+      "targets": [
+        {"expr": "(sum(rate(k6_http_reqs_total{expected_response=\"false\"}[10s])) or vector(0)) / clamp_min(sum(rate(k6_http_reqs_total[10s])), 1)", "legendFormat": "errors", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Iterations / sec",
+      "gridPos": {"h": 7, "w": 6, "x": 18, "y": 1},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(k6_iterations_total[10s])) or vector(0)", "legendFormat": "iters/s", "refId": "A"}]
+    },
+
+    {
+      "type": "timeseries", "title": "HTTP duration p95 by endpoint (ms)",
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "k6_http_req_duration_p95{name!=\"\"}", "legendFormat": "{{name}}", "refId": "A"}]
+    },
+    {
+      "type": "timeseries", "title": "HTTP duration p99 by endpoint (ms)",
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "k6_http_req_duration_p99{name!=\"\"}", "legendFormat": "{{name}}", "refId": "A"}]
+    },
+
+    {
+      "type": "timeseries", "title": "HTTP phases (avg ms)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 17},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "k6_http_req_blocked_avg", "legendFormat": "blocked", "refId": "A"},
+        {"expr": "k6_http_req_connecting_avg", "legendFormat": "connecting", "refId": "B"},
+        {"expr": "k6_http_req_sending_avg", "legendFormat": "sending", "refId": "C"},
+        {"expr": "k6_http_req_waiting_avg", "legendFormat": "waiting (TTFB)", "refId": "D"},
+        {"expr": "k6_http_req_receiving_avg", "legendFormat": "receiving", "refId": "E"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Checks rate (pass vs fail)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 17},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(k6_checks_total[10s])) or vector(0)", "legendFormat": "passed", "refId": "A"},
+        {"expr": "sum(rate(k6_checks_total{check=~\".+\"}[10s])) - sum(rate(k6_checks_total[10s])) or vector(0)", "legendFormat": "failed", "refId": "B"}
+      ]
+    },
+
+    {
+      "type": "timeseries", "title": "Data throughput (B/s)",
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 25},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "Bps"}},
+      "targets": [
+        {"expr": "rate(k6_data_sent_total[10s])", "legendFormat": "sent", "refId": "A"},
+        {"expr": "rate(k6_data_received_total[10s])", "legendFormat": "received", "refId": "B"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Iteration duration (avg / p95)",
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 25},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "k6_iteration_duration_avg", "legendFormat": "avg", "refId": "A"},
+        {"expr": "k6_iteration_duration_p95", "legendFormat": "p95", "refId": "B"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Dropped iterations / sec",
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 25},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(rate(k6_dropped_iterations_total[10s])) or vector(0)", "legendFormat": "dropped/s", "refId": "A"}]
+    },
+
+    { "type": "row", "title": "LanCore — Application", "gridPos": {"h": 1, "w": 24, "x": 0, "y": 32}, "collapsed": false },
+
+    {
+      "type": "timeseries", "title": "LanCore scrape up",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 33},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "up{job=\"lancore\"}", "legendFormat": "up", "refId": "A"}]
+    },
+    {
+      "type": "timeseries", "title": "LanCore HTTP requests by status (cumulative)",
+      "gridPos": {"h": 8, "w": 9, "x": 6, "y": 33},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (status_code) (app_http_requests_total)", "legendFormat": "{{status_code}}", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "LanCore EMA duration by route (ms)",
+      "gridPos": {"h": 8, "w": 9, "x": 15, "y": 33},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "topk(10, app_http_request_duration_ms_ema)", "legendFormat": "{{method}} {{route}}", "refId": "A"}
+      ]
+    },
+    {
+      "type": "stat", "title": "LanCore totals",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 39},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "app_users_total", "legendFormat": "users", "refId": "A"},
+        {"expr": "app_events_total", "legendFormat": "events", "refId": "B"},
+        {"expr": "app_tickets_total", "legendFormat": "tickets", "refId": "C"},
+        {"expr": "app_failed_jobs_total", "legendFormat": "failed jobs", "refId": "D"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "LanCore scrape duration",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 39},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "scrape_duration_seconds{job=\"lancore\"}", "legendFormat": "scrape s", "refId": "A"}]
+    }
+  ]
+}

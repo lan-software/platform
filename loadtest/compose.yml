@@ -1,0 +1,72 @@
+networks:
+  loadtest:
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: loadtest-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-remote-write-receiver
+      - --enable-feature=native-histograms
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - loadtest
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: loadtest-grafana
+    depends_on:
+      - prometheus
+    environment:
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_BASIC_ENABLED=false
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/k6.json
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - loadtest
+
+  k6:
+    image: grafana/k6:0.53.0
+    container_name: loadtest-k6
+    depends_on:
+      - prometheus
+    environment:
+      - K6_OUT=experimental-prometheus-rw
+      - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+      - K6_PROMETHEUS_RW_TREND_STATS=p(95),p(99),min,max,avg
+      - K6_PROMETHEUS_RW_PUSH_INTERVAL=1s
+      - PROFILE=${PROFILE:-local}
+      - TARGET_VUS=${TARGET_VUS:-}
+      - DURATION=${DURATION:-}
+      - BASE_URL=${BASE_URL:-}
+      - INTEGRATION_TOKEN=${INTEGRATION_TOKEN:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./scenarios:/scripts/scenarios:ro
+      - ./lib:/scripts/lib:ro
+      - ./config:/scripts/config:ro
+      - ./data:/scripts/data
+      - ./results:/scripts/results
+    networks:
+      - loadtest
+    entrypoint: ["k6"]
