@@ -64,12 +64,18 @@ services:
     networks:
       - demo
     depends_on:
-      - lancore
-      - lanbrackets
-      - lanentrance
-      - lanhelp
-      - lanshout
-      - mailpit
+      lancore:
+        condition: service_healthy
+      lanbrackets:
+        condition: service_healthy
+      lanentrance:
+        condition: service_healthy
+      lanhelp:
+        condition: service_healthy
+      lanshout:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
 
   lancore:
     <<: *lan-common
@@ -114,7 +120,7 @@ services:
       APP_KEY: "${LANBRACKETS_APP_KEY}"
       FLAVOR: octane
       ROLE: all
-      SKIP_MIGRATE: "1"
+      SKIP_MIGRATE: "0"
       SKIP_CACHE: "0"
       OCTANE_WORKERS: auto
       OCTANE_MAX_REQUESTS: "500"
@@ -148,7 +154,7 @@ services:
       APP_KEY: "${LANENTRANCE_APP_KEY}"
       FLAVOR: server
       ROLE: all
-      SKIP_MIGRATE: "1"
+      SKIP_MIGRATE: "0"
       SKIP_CACHE: "0"
       DB_DATABASE: lanentrance
       DB_USERNAME: lanentrance
@@ -180,7 +186,7 @@ services:
       APP_KEY: "${LANHELP_APP_KEY}"
       FLAVOR: server
       ROLE: all
-      SKIP_MIGRATE: "1"
+      SKIP_MIGRATE: "0"
       SKIP_CACHE: "0"
       DB_DATABASE: lanhelp
       DB_USERNAME: lanhelp
@@ -212,7 +218,7 @@ services:
       APP_KEY: "${LANSHOUT_APP_KEY}"
       FLAVOR: server
       ROLE: all
-      SKIP_MIGRATE: "1"
+      SKIP_MIGRATE: "0"
       SKIP_CACHE: "0"
       DB_DATABASE: lanshout
       DB_USERNAME: lanshout
