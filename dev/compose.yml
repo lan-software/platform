@@ -56,6 +56,33 @@ services:
             - '1080:1080'
         networks:
             - lanparty
+    
+    listmonk:
+        image: 'listmonk/listmonk:latest'
+        container_name: infrastructure-listmonk
+        depends_on:
+            pgsql:
+                condition: service_healthy
+        command: [sh, -c, "./listmonk --install --idempotent --yes --config /listmonk/config.toml && ./listmonk --upgrade --yes --config /listmonk/config.toml && ./listmonk --config /listmonk/config.toml"]
+        ports:
+            - '${FORWARD_LISTMONK_PORT:-9000}:9000'
+        environment:
+            LISTMONK_ADMIN_USER: '${LISTMONK_ADMIN_USER:-admin}'
+            LISTMONK_ADMIN_PASSWORD: '${LISTMONK_ADMIN_PASSWORD:-listmonk-admin}'
+        volumes:
+            - './listmonk/config.toml:/listmonk/config.toml'
+            - 'infrastructure-listmonk:/listmonk/uploads'
+        networks:
+            - lanparty
+        healthcheck:
+            test:
+                - CMD
+                - wget
+                - '-qO-'
+                - 'http://127.0.0.1:9000/api/health'
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
 networks:
     lanparty:
@@ -65,4 +92,6 @@ volumes:
     infrastructure-pgsql:
         driver: local
     infrastructure-redis:
+        driver: local
+    infrastructure-listmonk:
         driver: local

@@ -19,3 +19,9 @@ SQL
 SQL
   fi
 done
+
+# Listmonk needs its own role + database (matches platform/dev/listmonk/config.toml).
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-SQL
+  CREATE ROLE listmonk WITH LOGIN PASSWORD 'listmonk';
+  CREATE DATABASE listmonk OWNER listmonk;
+SQL
